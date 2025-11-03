@@ -18,14 +18,19 @@
         .subtitle { color: #666; margin-bottom: 30px; }
         .input-group { margin-bottom: 20px; }
         label { display: block; font-weight: bold; margin-bottom: 8px; color: #333; }
-        input[type="text"] { 
+        input[type="text"], textarea { 
             width: 100%; 
             padding: 12px; 
             border: 2px solid #ddd; 
             border-radius: 8px; 
             font-size: 16px;
+            font-family: inherit;
         }
-        input[type="text"]:focus { border-color: #667eea; outline: none; }
+        input[type="text"]:focus, textarea:focus { border-color: #667eea; outline: none; }
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
         .button-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
         button {
             padding: 12px 24px;
@@ -114,6 +119,16 @@
             font-size: 0.85rem;
             color: #64748b;
             margin-top: 5px;
+            margin-bottom: 10px;
+        }
+        .notes-section {
+            margin-top: 10px;
+        }
+        .notes-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 5px;
         }
         .team-scores {
             display: grid;
@@ -156,10 +171,10 @@
             <div class="alert" id="guide">
                 <div class="alert-title">📋 How to Use:</div>
                 <ol class="alert-list">
-                    <li>Everyone on your team opens THIS SAME FILE</li>
+                    <li>Everyone on your team opens THIS SAME URL</li>
                     <li>Everyone uses the EXACT SAME deal name</li>
                     <li>Each person enters their own name</li>
-                    <li>Score the deal and click "Save My Scores"</li>
+                    <li>Score the deal and add notes, then click "Save My Scores"</li>
                     <li>Click "Team View" to see everyone's scores combined</li>
                 </ol>
             </div>
@@ -196,6 +211,7 @@
     <script>
         let viewMode = 'individual';
         let scores = {};
+        let notes = {};
         let teamScores = [];
 
         const criteria = {
@@ -226,8 +242,11 @@
             ]
         };
 
-        // Initialize scores
-        Object.values(criteria).flat().forEach(c => scores[c.id] = 0);
+        // Initialize scores and notes
+        Object.values(criteria).flat().forEach(c => {
+            scores[c.id] = 0;
+            notes[c.id] = '';
+        });
 
         function renderUI() {
             const container = document.getElementById('categories');
@@ -269,15 +288,24 @@
                                     <span>N/A</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
                                 </div>
                             </div>
+                            <div class="notes-section">
+                                <div class="notes-label">Notes:</div>
+                                <textarea 
+                                    placeholder="Add notes, actual values, or context..."
+                                    oninput="updateNote('${criterion.id}', this.value)"
+                                >${notes[criterion.id]}</textarea>
+                            </div>
                         `;
                     } else if (teamScores.length > 0) {
                         let teamHTML = '<div class="team-scores">';
                         teamScores.forEach(ts => {
                             const score = ts.scores[criterion.id] || 0;
+                            const note = ts.notes && ts.notes[criterion.id] ? ts.notes[criterion.id] : '';
                             teamHTML += `
                                 <div class="team-member">
                                     <div class="team-member-name">${ts.evaluator}:</div>
                                     <div class="team-member-score">${score === 0 ? 'N/A' : score}</div>
+                                    ${note ? `<div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">${note}</div>` : ''}
                                 </div>
                             `;
                         });
@@ -297,6 +325,10 @@
         function updateScore(id, value) {
             scores[id] = parseInt(value);
             renderUI();
+        }
+
+        function updateNote(id, value) {
+            notes[id] = value;
         }
 
         function calculateAverage(scoreObj) {
@@ -375,6 +407,7 @@
                 existing.push({
                     evaluator: evaluatorName,
                     scores: {...scores},
+                    notes: {...notes},
                     timestamp: new Date().toISOString()
                 });
                 
