@@ -215,30 +215,52 @@
         let teamScores = [];
 
         const criteria = {
-            'Sponsor Quality': [
-                {id: 'sponsorDeals', label: 'Prior Deals Completed', desc: '5: 5+ deals | 4: 3-4 deals | 3: 1-2 deals | 2: First w/ co-sponsor | 1: Solo first'},
-                {id: 'sponsorExits', label: 'Exit Track Record', desc: '5: Multiple 3x+ exits | 4: 2x+ exits | 3: 1.5x+ exits | 2: One exit | 1: No exits'},
-                {id: 'sponsorCapital', label: 'Personal Capital', desc: '5: >20% or >$2M | 4: 15-20% or $1-2M | 3: 10-15% or $500k-1M | 2: 5-10% | 1: <5%'}
+            'Sponsor Quality & Track Record': [
+                {id: 'sponsorDeals', label: 'Prior Deals Completed', desc: '5: 5+ successful deals | 4: 3-4 deals | 3: 1-2 deals | 2: First deal with strong co-sponsor | 1: Solo first-time sponsor'},
+                {id: 'sponsorExits', label: 'Exit Track Record', desc: '5: Multiple 3x+ MOIC exits | 4: 2x+ MOIC exits | 3: 1.5x+ MOIC exits | 2: One successful exit | 1: No exits'},
+                {id: 'sponsorCapital', label: 'Personal Capital Commitment', desc: '5: >20% of equity or >$2M | 4: 15-20% or $1-2M | 3: 10-15% or $500k-1M | 2: 5-10% or $250-500k | 1: <5% or <$250k'},
+                {id: 'sponsorAngle', label: 'Deal Sourcing Angle & Edge', desc: '5: Unique proprietary deal flow (industry insider, geography, niche) | 4: Strong differentiated angle | 3: Adequate sourcing strategy | 2: Generic broker-sourced deals | 1: No clear sourcing advantage'},
+                {id: 'sponsorBackground', label: 'Professional Background & Expertise', desc: '5: Senior role institutional PE (VP+) + ops | 4: Institutional PE analyst/associate + ops | 3: Mid-market PE or 10+ years ops only | 2: Corp dev or limited PE exposure | 1: No PE or ops experience'},
+                {id: 'sponsorCredibility', label: 'Credibility & Market Presence', desc: '5: Known in market, LinkedIn presence, testimonials | 4: Active in industry, findable track record | 3: Clean background check, verifiable resume | 2: Limited digital footprint | 1: Concerning gaps or inconsistencies'},
+                {id: 'sponsorCarry', label: 'Sponsor Carry Structure', desc: '5: Tiered carry (20%+ at higher returns) | 4: Graduated carry structure | 3: Standard 20% carry | 2: Below-market carry | 1: No carry or unusual structure'}
             ],
-            'Business Model': [
+            'Business Model & Competitive Position': [
                 {id: 'businessRevenue', label: 'Revenue Scale', desc: '5: >$50M | 4: $25-50M | 3: $10-25M | 2: $5-10M | 1: <$5M'},
-                {id: 'businessCustomer', label: 'Customer Diversification', desc: '5: Top 10 <15% | 4: <25% | 3: <40% | 2: <60% | 1: >60%'},
-                {id: 'businessRecurring', label: 'Revenue Predictability', desc: '5: >80% recurring | 4: 60-80% | 3: 40-60% | 2: 20-40% | 1: <20%'}
+                {id: 'businessCustomer', label: 'Customer Diversification', desc: '5: Top 10 <15% revenue | 4: Top 10 <25% | 3: Top 10 <40% | 2: Top 10 <60% | 1: Top 10 >60%'},
+                {id: 'businessRecurring', label: 'Revenue Predictability', desc: '5: >80% recurring/contracted | 4: 60-80% recurring | 3: 40-60% recurring | 2: 20-40% recurring | 1: <20% recurring'},
+                {id: 'businessRetention', label: 'Customer Retention Rate', desc: '5: >95% net retention | 4: 90-95% | 3: 85-90% | 2: 80-85% | 1: <80%'},
+                {id: 'managementTenure', label: 'Management Team Tenure & Stability', desc: '5: CEO/CFO 5+ years, staying post-close | 4: 3-5 years, committed to stay | 3: 2-3 years, staying | 2: <2 years or transition planned | 1: Complete turnover needed'},
+                {id: 'competitiveAdvantage', label: 'Sustainable Competitive Advantage', desc: '5: Clear moat (patents, IP, switching costs, network effects) | 4: Strong advantages in place | 3: Moderate differentiation | 2: Limited advantages | 1: No defensible position'},
+                {id: 'productDifferentiation', label: 'Product/Service Differentiation', desc: '5: Highly differentiated, unique value prop | 4: Well-differentiated offering | 3: Some differentiation | 2: Slight differences from competitors | 1: Commoditized offering'}
             ],
-            'Financial Performance': [
+            'Financial Performance & Metrics': [
                 {id: 'ebitdaMargins', label: 'EBITDA Margins', desc: '5: >30% | 4: 20-30% | 3: 15-20% | 2: 10-15% | 1: <10%'},
-                {id: 'revenueGrowth', label: 'Revenue Growth (3yr)', desc: '5: >25% | 4: 15-25% | 3: 10-15% | 2: 5-10% | 1: <5%'},
-                {id: 'fcfConversion', label: 'FCF Conversion', desc: '5: >90% | 4: 75-90% | 3: 60-75% | 2: 40-60% | 1: <40%'}
+                {id: 'revenueGrowth', label: 'Revenue CAGR (3yr)', desc: '5: >25% | 4: 15-25% | 3: 10-15% | 2: 5-10% | 1: <5% or declining'},
+                {id: 'ebitdaGrowth', label: 'EBITDA CAGR (3yr)', desc: '5: >30% | 4: 20-30% | 3: 15-20% | 2: 10-15% | 1: <10% or declining'},
+                {id: 'fcfConversion', label: 'Free Cash Flow Conversion', desc: '5: >90% of EBITDA | 4: 75-90% | 3: 60-75% | 2: 40-60% | 1: <40%'},
+                {id: 'capexIntensity', label: 'Capex as % of Revenue', desc: '5: <2% | 4: 2-4% | 3: 4-6% | 2: 6-10% | 1: >10%'},
+                {id: 'grossMargins', label: 'Gross Margins', desc: '5: >60% | 4: 50-60% | 3: 40-50% | 2: 30-40% | 1: <30%'},
+                {id: 'customersConcentration', label: 'Top Customer as % Revenue', desc: '5: <5% | 4: 5-10% | 3: 10-15% | 2: 15-25% | 1: >25%'}
             ],
-            'Deal Structure': [
-                {id: 'dealMultiple', label: 'EV/EBITDA Multiple', desc: '5: <5x | 4: 5-6x | 3: 6-7x | 2: 7-8x | 1: >8x'},
-                {id: 'dealLeverage', label: 'Debt/EBITDA', desc: '5: <2.5x | 4: 2.5-3.5x | 3: 3.5-4.5x | 2: 4.5-5.5x | 1: >5.5x'},
-                {id: 'dealRollover', label: 'Seller Rollover', desc: '5: ≥30% | 4: 20-29% | 3: 10-19% | 2: 5-9% | 1: <5%'}
+            'Deal Economics & Structure': [
+                {id: 'dealMultiple', label: 'EV / LTM EBITDA Multiple', desc: '5: <5x | 4: 5-6x | 3: 6-7x | 2: 7-8x | 1: >8x'},
+                {id: 'dealLeverage', label: 'Total Debt / EBITDA', desc: '5: <2.5x | 4: 2.5-3.5x | 3: 3.5-4.5x | 2: 4.5-5.5x | 1: >5.5x'},
+                {id: 'dealEquityCheck', label: 'Our Equity Check Size', desc: '5: <$5M | 4: $5-8M | 3: $8-12M | 2: $12-15M | 1: >$15M (concentration risk)'},
+                {id: 'dealDebtSeniority', label: 'Our Debt Position & Security', desc: '5: First-dollar senior secured debt | 4: Senior secured with minimal pari passu | 3: Pari passu senior debt | 2: Junior/mezzanine position | 1: Unsecured or subordinated'},
+                {id: 'dealRollover', label: 'Seller Rollover Equity', desc: '5: ≥30% rolling | 4: 20-29% rolling | 3: 10-19% rolling | 2: 5-9% rolling | 1: <5% or none'}
             ],
-            'Market & Execution': [
-                {id: 'marketTam', label: 'TAM Size', desc: '5: >$5B | 4: $2-5B | 3: $1-2B | 2: $500M-1B | 1: <$500M'},
-                {id: 'marketGrowth', label: 'Market Growth', desc: '5: >15% | 4: 10-15% | 3: 5-10% | 2: 2-5% | 1: Flat/Declining'},
-                {id: 'ddQuality', label: 'Diligence Quality', desc: '5: Full QofE+legal+commercial+IT | 4: QofE+legal+1 | 3: QofE+legal | 2: Limited | 1: Minimal'}
+            'Market Dynamics & Industry': [
+                {id: 'marketTam', label: 'Total Addressable Market', desc: '5: >$5B TAM | 4: $2-5B | 3: $1-2B | 2: $500M-1B | 1: <$500M'},
+                {id: 'marketGrowth', label: 'Market Growth Rate', desc: '5: >15% annually | 4: 10-15% | 3: 5-10% | 2: 2-5% | 1: Flat or declining'},
+                {id: 'marketFragmentation', label: 'Market Fragmentation & Consolidation Opportunity', desc: '5: Highly fragmented, clear roll-up opportunity | 4: Fragmented with consolidation thesis | 3: Moderately consolidated | 2: Consolidated market | 1: Few dominant players, limited M&A opportunity'},
+                {id: 'regulatoryRisk', label: 'Regulatory & Compliance Risk', desc: '5: Minimal regulation | 4: Stable regulatory environment | 3: Moderate oversight | 2: Changing regulations | 1: High regulatory risk or uncertainty'},
+                {id: 'tariffExposure', label: 'Tariff & Trade Policy Exposure', desc: '5: Domestic-only, no import/export exposure | 4: Minimal foreign sourcing (<10% COGS) | 3: Moderate exposure, diversified suppliers | 2: Significant China/foreign exposure (>30% COGS) | 1: Heavy reliance on tariff-sensitive imports'},
+                {id: 'aiDisruptionRisk', label: 'AI/Automation Disruption Risk', desc: '5: AI enhances business, low disruption risk | 4: Minimal AI impact on core operations | 3: Moderate risk, adaptation possible | 2: Significant automation threat to model | 1: High risk of AI/automation displacement'}
+            ],
+            'Execution Risk & Value Creation': [
+                {id: 'ddQuality', label: 'Diligence Quality & Coverage', desc: '5: Full QofE, legal, commercial, IT | 4: QofE + legal + one other | 3: QofE + legal | 2: Limited QofE | 1: Minimal diligence'},
+                {id: 'integrationRisk', label: 'Integration Complexity', desc: '5: Stand-alone, minimal change | 4: Minor integration needs | 3: Moderate complexity | 2: Significant integration | 1: High execution risk'},
+                {id: 'valueCreationPlan', label: 'Value Creation Plan Clarity', desc: '5: Detailed 100-day plan, multiple levers | 4: Clear plan, 2-3 levers | 3: General plan | 2: Vague initiatives | 1: No clear plan'}
             ]
         };
 
@@ -271,7 +293,7 @@
                     
                     criterionDiv.innerHTML = `
                         <div class="criterion-header">
-                            <div>
+                            <div style="flex: 1;">
                                 <div class="criterion-title">${criterion.label}</div>
                                 <div class="criterion-desc">${criterion.desc}</div>
                             </div>
