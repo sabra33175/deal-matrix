@@ -1,58 +1,495 @@
-import { sql } from '@vercel/postgres';
+import React, { useState, useEffect } from 'react';
+import { AlertCircle, Users, User, Save, Database, ChevronDown, History, Plus, Trash2 } from 'lucide-react';
 
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+const DealMatrixVercel = () => {
+  const [viewMode, setViewMode] = useState('individual');
+  const [scores, setScores] = useState({});
+  const [notes, setNotes] = useState({});
+  const [teamScores, setTeamScores] = useState([]);
+  const [dealName, setDealName] = useState('');
+  const [evaluatorName, setEvaluatorName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('');
+  const [allDeals, setAllDeals] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isNewDeal, setIsNewDeal] = useState(true);
 
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
+  const criteria = {
+    'Sponsor Quality & Track Record': [
+      {id: 'sponsorDeals', label: 'Prior Deals Completed', desc: '5: 5+ successful deals | 4: 3-4 deals | 3: 1-2 deals | 2: First deal with strong co-sponsor | 1: Solo first-time sponsor'},
+      {id: 'sponsorExits', label: 'Exit Track Record', desc: '5: Multiple 3x+ MOIC exits | 4: 2x+ MOIC exits | 3: 1.5x+ MOIC exits | 2: One successful exit | 1: No exits'},
+      {id: 'sponsorCapital', label: 'Personal Capital Commitment', desc: '5: >20% of equity or >$2M | 4: 15-20% or $1-2M | 3: 10-15% or $500k-1M | 2: 5-10% or $250-500k | 1: <5% or <$250k'},
+      {id: 'sponsorAngle', label: 'Deal Sourcing Angle & Edge', desc: '5: Unique proprietary deal flow | 4: Strong differentiated angle | 3: Adequate strategy | 2: Generic broker | 1: No advantage'},
+      {id: 'sponsorBackground', label: 'Professional Background', desc: '5: Senior PE (VP+) + ops | 4: PE analyst + ops | 3: Mid-market PE or 10+ ops | 2: Corp dev | 1: No PE/ops'},
+      {id: 'sponsorCredibility', label: 'Credibility & Market Presence', desc: '5: Known in market | 4: Active in industry | 3: Clean background | 2: Limited footprint | 1: Concerning gaps'},
+      {id: 'sponsorCarry', label: 'Sponsor Carry Structure', desc: '5: Tiered carry (20%+) | 4: Graduated | 3: Standard 20% | 2: Below-market | 1: No carry'}
+    ],
+    'Business Model & Competitive Position': [
+      {id: 'businessRevenue', label: 'Revenue Scale', desc: '5: >$50M | 4: $25-50M | 3: $10-25M | 2: $5-10M | 1: <$5M'},
+      {id: 'businessCustomer', label: 'Customer Diversification', desc: '5: Top 10 <15% | 4: Top 10 <25% | 3: Top 10 <40% | 2: Top 10 <60% | 1: Top 10 >60%'},
+      {id: 'businessRecurring', label: 'Revenue Predictability', desc: '5: >80% recurring | 4: 60-80% | 3: 40-60% | 2: 20-40% | 1: <20%'},
+      {id: 'businessRetention', label: 'Customer Retention', desc: '5: >95% | 4: 90-95% | 3: 85-90% | 2: 80-85% | 1: <80%'},
+      {id: 'managementTenure', label: 'Management Team Tenure', desc: '5: CEO/CFO 5+ yrs staying | 4: 3-5 yrs staying | 3: 2-3 yrs | 2: <2 yrs | 1: Complete turnover'},
+      {id: 'competitiveAdvantage', label: 'Competitive Advantage', desc: '5: Clear moat | 4: Strong advantages | 3: Moderate | 2: Limited | 1: No defensible position'},
+      {id: 'productDifferentiation', label: 'Product Differentiation', desc: '5: Highly differentiated | 4: Well-differentiated | 3: Some | 2: Slight | 1: Commoditized'}
+    ],
+    'Financial Performance & Metrics': [
+      {id: 'ebitdaMargins', label: 'EBITDA Margins', desc: '5: >30% | 4: 20-30% | 3: 15-20% | 2: 10-15% | 1: <10%'},
+      {id: 'revenueGrowth', label: 'Revenue CAGR (3yr)', desc: '5: >25% | 4: 15-25% | 3: 10-15% | 2: 5-10% | 1: <5%'},
+      {id: 'ebitdaGrowth', label: 'EBITDA CAGR (3yr)', desc: '5: >30% | 4: 20-30% | 3: 15-20% | 2: 10-15% | 1: <10%'},
+      {id: 'fcfConversion', label: 'FCF Conversion', desc: '5: >90% | 4: 75-90% | 3: 60-75% | 2: 40-60% | 1: <40%'},
+      {id: 'capexIntensity', label: 'Capex % Revenue', desc: '5: <2% | 4: 2-4% | 3: 4-6% | 2: 6-10% | 1: >10%'},
+      {id: 'grossMargins', label: 'Gross Margins', desc: '5: >60% | 4: 50-60% | 3: 40-50% | 2: 30-40% | 1: <30%'},
+      {id: 'customersConcentration', label: 'Top Customer %', desc: '5: <5% | 4: 5-10% | 3: 10-15% | 2: 15-25% | 1: >25%'}
+    ],
+    'Deal Economics & Structure': [
+      {id: 'dealMultiple', label: 'EV/EBITDA Multiple', desc: '5: <5x | 4: 5-6x | 3: 6-7x | 2: 7-8x | 1: >8x'},
+      {id: 'dealLeverage', label: 'Total Debt/EBITDA', desc: '5: <2.5x | 4: 2.5-3.5x | 3: 3.5-4.5x | 2: 4.5-5.5x | 1: >5.5x'},
+      {id: 'dealEquityCheck', label: 'Equity Check Size', desc: '5: <$5M | 4: $5-8M | 3: $8-12M | 2: $12-15M | 1: >$15M'},
+      {id: 'dealDebtSeniority', label: 'Debt Position', desc: '5: First-dollar senior | 4: Senior secured | 3: Pari passu | 2: Junior/mezz | 1: Unsecured'},
+      {id: 'dealRollover', label: 'Seller Rollover', desc: '5: ≥30% | 4: 20-29% | 3: 10-19% | 2: 5-9% | 1: <5%'}
+    ],
+    'Market Dynamics & Industry': [
+      {id: 'marketTam', label: 'Total Addressable Market', desc: '5: >$5B | 4: $2-5B | 3: $1-2B | 2: $500M-1B | 1: <$500M'},
+      {id: 'marketGrowth', label: 'Market Growth Rate', desc: '5: >15% | 4: 10-15% | 3: 5-10% | 2: 2-5% | 1: Flat/declining'},
+      {id: 'marketFragmentation', label: 'Market Fragmentation', desc: '5: Highly fragmented | 4: Fragmented | 3: Moderate | 2: Consolidated | 1: Few dominant'},
+      {id: 'regulatoryRisk', label: 'Regulatory Risk', desc: '5: Minimal | 4: Stable | 3: Moderate | 2: Changing | 1: High risk'},
+      {id: 'tariffExposure', label: 'Tariff Exposure', desc: '5: Domestic only | 4: Minimal (<10% COGS) | 3: Moderate | 2: Significant (>30%) | 1: Heavy reliance'},
+      {id: 'aiDisruptionRisk', label: 'AI/Automation Risk', desc: '5: AI enhances | 4: Minimal impact | 3: Moderate risk | 2: Significant threat | 1: High displacement risk'}
+    ],
+    'Execution Risk & Value Creation': [
+      {id: 'ddQuality', label: 'Diligence Quality', desc: '5: Full QofE+legal+commercial+IT | 4: QofE+legal+one | 3: QofE+legal | 2: Limited | 1: Minimal'},
+      {id: 'integrationRisk', label: 'Integration Complexity', desc: '5: Stand-alone | 4: Minor needs | 3: Moderate | 2: Significant | 1: High execution risk'},
+      {id: 'valueCreationPlan', label: 'Value Creation Plan', desc: '5: Detailed 100-day plan | 4: Clear plan 2-3 levers | 3: General | 2: Vague | 1: No clear plan'}
+    ]
+  };
 
-  try {
-    if (req.method === 'GET') {
-      const { dealName } = req.query;
-      
-      if (!dealName) {
-        return res.status(400).json({ error: 'dealName required' });
+  useEffect(() => {
+    const initialScores = {};
+    const initialNotes = {};
+    Object.values(criteria).flat().forEach(c => {
+      initialScores[c.id] = 0;
+      initialNotes[c.id] = '';
+    });
+    setScores(initialScores);
+    setNotes(initialNotes);
+    loadAllDeals();
+  }, []);
+
+  useEffect(() => {
+    if (dealName && !isNewDeal) {
+      loadTeamScores();
+    }
+  }, [dealName]);
+
+  const loadAllDeals = async () => {
+    try {
+      const response = await fetch('/api/deals');
+      if (response.ok) {
+        const data = await response.json();
+        setAllDeals(data);
       }
+    } catch (error) {
+      console.error('Error loading deals:', error);
+    }
+  };
 
-      const result = await sql`
-        SELECT id, deal_name, evaluator, scores, notes, created_at, updated_at
-        FROM deal_evaluations
-        WHERE deal_name = ${dealName}
-        ORDER BY updated_at DESC
-      `;
+  const loadTeamScores = async () => {
+    if (!dealName.trim()) return;
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/evaluations?dealName=${encodeURIComponent(dealName)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTeamScores(data);
+      }
+    } catch (error) {
+      console.error('Error loading team scores:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      return res.status(200).json(result.rows);
+  const saveScores = async () => {
+    if (!dealName.trim() || !evaluatorName.trim()) {
+      alert('Please enter both deal name and your name!');
+      return;
     }
 
-    if (req.method === 'POST') {
-      const { dealName, evaluatorName, scores, notes } = req.body;
+    setLoading(true);
+    setSaveStatus('Saving...');
+    
+    try {
+      const response = await fetch('/api/evaluations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          dealName,
+          evaluatorName,
+          scores,
+          notes
+        })
+      });
 
-      if (!dealName || !evaluatorName || !scores) {
-        return res.status(400).json({ error: 'Missing required fields' });
+      if (response.ok) {
+        setSaveStatus('✅ Saved successfully!');
+        await loadTeamScores();
+        await loadAllDeals();
+        setIsNewDeal(false);
+        setTimeout(() => setSaveStatus(''), 3000);
+      } else {
+        throw new Error('Save failed');
       }
+    } catch (error) {
+      console.error('Error saving:', error);
+      setSaveStatus('❌ Save failed!');
+      setTimeout(() => setSaveStatus(''), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      const result = await sql`
-        INSERT INTO deal_evaluations (deal_name, evaluator, scores, notes, updated_at)
-        VALUES (${dealName}, ${evaluatorName}, ${JSON.stringify(scores)}, ${JSON.stringify(notes || {})}, CURRENT_TIMESTAMP)
-        ON CONFLICT (deal_name, evaluator)
-        DO UPDATE SET 
-          scores = ${JSON.stringify(scores)},
-          notes = ${JSON.stringify(notes || {})},
-          updated_at = CURRENT_TIMESTAMP
-        RETURNING *
-      `;
+  const selectDeal = (deal) => {
+    setDealName(deal.deal_name);
+    setIsNewDeal(false);
+    setShowDropdown(false);
+    loadTeamScores();
+  };
 
-      return res.status(200).json(result.rows[0]);
+  const startNewDeal = () => {
+    setDealName('');
+    setIsNewDeal(true);
+    setTeamScores([]);
+    const initialScores = {};
+    const initialNotes = {};
+    Object.values(criteria).flat().forEach(c => {
+      initialScores[c.id] = 0;
+      initialNotes[c.id] = '';
+    });
+    setScores(initialScores);
+    setNotes(initialNotes);
+    setShowDropdown(false);
+  };
+
+  const deleteDeal = async (dealNameToDelete) => {
+    if (!confirm(`Are you sure you want to delete "${dealNameToDelete}" and all its evaluations?`)) {
+      return;
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
-  } catch (error) {
-    console.error('Database error:', error);
-    return res.status(500).json({ error: 'Database error', details: error.message });
-  }
-}
+    try {
+      const response = await fetch(`/api/deals?dealName=${encodeURIComponent(dealNameToDelete)}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        alert('✅ Deal deleted successfully!');
+        await loadAllDeals();
+        if (dealName === dealNameToDelete) {
+          startNewDeal();
+        }
+      } else {
+        throw new Error('Delete failed');
+      }
+    } catch (error) {
+      console.error('Error deleting deal:', error);
+      alert('❌ Failed to delete deal');
+    }
+  };
+
+  const calculateAverage = (scoreObj) => {
+    const values = Object.values(scoreObj).filter(v => v > 0);
+    return values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+  };
+
+  const calculateTeamAvg = (criterionId) => {
+    if (teamScores.length === 0) return 'N/A';
+    const values = teamScores.map(ts => ts.scores[criterionId] || 0).filter(v => v > 0);
+    if (values.length === 0) return 'N/A';
+    return (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1);
+  };
+
+  const getFinalScore = () => {
+    if (viewMode === 'individual') {
+      return calculateAverage(scores);
+    } else {
+      if (teamScores.length === 0) return 0;
+      const teamAvgs = teamScores.map(ts => calculateAverage(ts.scores));
+      return teamAvgs.reduce((a, b) => a + b, 0) / teamAvgs.length;
+    }
+  };
+
+  const getScoreInfo = (score) => {
+    if (score >= 4.0) return { bg: 'bg-green-100', border: 'border-green-500', text: 'text-green-800', label: '🚀 STRONG GO' };
+    if (score >= 3.5) return { bg: 'bg-green-50', border: 'border-green-400', text: 'text-green-700', label: '✅ GO' };
+    if (score >= 3.0) return { bg: 'bg-yellow-100', border: 'border-yellow-500', text: 'text-yellow-800', label: '🤔 MAYBE' };
+    if (score >= 2.5) return { bg: 'bg-orange-100', border: 'border-orange-500', text: 'text-orange-800', label: '⚠️ PASS' };
+    return { bg: 'bg-red-100', border: 'border-red-500', text: 'text-red-800', label: '❌ NO GO' };
+  };
+
+  const finalScore = getFinalScore();
+  const scoreInfo = getScoreInfo(finalScore);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-600 to-purple-800 p-4">
+      <div className="max-w-6xl mx-auto">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <Database className="w-8 h-8 text-purple-600" />
+            <h1 className="text-4xl font-bold text-purple-600">Deal Evaluation Matrix</h1>
+          </div>
+          <p className="text-gray-600 mb-6">Vercel Postgres - Independent Sponsor IC Tool</p>
+
+          <div className="bg-blue-50 border-2 border-blue-400 rounded-lg p-4 mb-6">
+            <div className="font-bold text-blue-900 mb-2">📋 How to Use:</div>
+            <ol className="list-decimal ml-5 text-blue-800 space-y-1">
+              <li>Select existing deal from dropdown OR create new deal</li>
+              <li>Everyone uses the EXACT SAME deal name</li>
+              <li>Each person enters their own name</li>
+              <li>Score the deal and add notes, then click "Save to Database"</li>
+              <li>Click "Team View" to see everyone's scores combined</li>
+            </ol>
+          </div>
+
+          {/* Deal Selection Dropdown */}
+          <div className="mb-6">
+            <div className="flex gap-3">
+              <div className="flex-1 relative">
+                <button
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-purple-100 border-2 border-purple-300 rounded-lg hover:bg-purple-200 transition-colors font-semibold text-purple-900"
+                >
+                  <div className="flex items-center gap-2">
+                    <History className="w-5 h-5" />
+                    <span>{isNewDeal ? 'New Deal' : dealName || 'Select Deal'}</span>
+                  </div>
+                  <ChevronDown className="w-5 h-5" />
+                </button>
+
+                {showDropdown && (
+                  <div className="absolute z-10 w-full mt-2 bg-white border-2 border-purple-300 rounded-lg shadow-xl max-h-96 overflow-y-auto">
+                    <button
+                      onClick={startNewDeal}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-purple-50 border-b border-gray-200 font-semibold text-purple-900"
+                    >
+                      <Plus className="w-5 h-5" />
+                      <span>Create New Deal</span>
+                    </button>
+                    
+                    {allDeals.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-gray-500">
+                        No historical deals yet
+                      </div>
+                    ) : (
+                      allDeals.map((deal, idx) => (
+                        <div key={idx} className="flex items-center hover:bg-gray-50 border-b border-gray-100">
+                          <button
+                            onClick={() => selectDeal(deal)}
+                            className="flex-1 px-4 py-3 text-left"
+                          >
+                            <div className="font-bold text-gray-900">{deal.deal_name}</div>
+                            <div className="text-sm text-gray-600">
+                              {deal.evaluator_count} evaluator{deal.evaluator_count !== 1 ? 's' : ''} • 
+                              Avg Score: {deal.avg_score ? parseFloat(deal.avg_score).toFixed(2) : 'N/A'} • 
+                              Updated: {new Date(deal.last_updated).toLocaleDateString()}
+                            </div>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteDeal(deal.deal_name);
+                            }}
+                            className="px-4 py-3 text-red-600 hover:bg-red-50"
+                            title="Delete deal"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label className="block font-bold mb-2 text-gray-700">
+                Deal Name {isNewDeal && '(New Deal)'}:
+              </label>
+              <input
+                type="text"
+                value={dealName}
+                onChange={(e) => setDealName(e.target.value)}
+                disabled={!isNewDeal}
+                placeholder="Enter new deal name..."
+                className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none ${
+                  isNewDeal 
+                    ? 'border-gray-300 focus:border-purple-500' 
+                    : 'border-gray-200 bg-gray-100 cursor-not-allowed'
+                }`}
+              />
+            </div>
+            <div>
+              <label className="block font-bold mb-2 text-gray-700">Your Name:</label>
+              <input
+                type="text"
+                value={evaluatorName}
+                onChange={(e) => setEvaluatorName(e.target.value)}
+                placeholder="John Smith"
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3 mb-6">
+            <button
+              onClick={saveScores}
+              disabled={loading}
+              className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              <Save className="w-5 h-5" />
+              {loading ? 'Saving...' : 'Save to Database'}
+            </button>
+            <button
+              onClick={() => setViewMode('individual')}
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-colors ${
+                viewMode === 'individual'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-blue-400 text-white hover:bg-blue-500'
+              }`}
+            >
+              <User className="w-5 h-5" />
+              My Scores
+            </button>
+            <button
+              onClick={() => setViewMode('team')}
+              disabled={teamScores.length === 0}
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-colors ${
+                viewMode === 'team'
+                  ? 'bg-purple-600 text-white'
+                  : teamScores.length === 0
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-purple-400 text-white hover:bg-purple-500'
+              }`}
+            >
+              <Users className="w-5 h-5" />
+              Team View ({teamScores.length})
+            </button>
+          </div>
+
+          {saveStatus && (
+            <div className={`text-center py-2 px-4 rounded-lg ${
+              saveStatus.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            }`}>
+              {saveStatus}
+            </div>
+          )}
+
+          {teamScores.length > 0 && (
+            <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-4 mt-4">
+              <div className="font-bold mb-3">Team Members:</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {teamScores.map((ts, idx) => (
+                  <div key={idx} className="bg-white rounded-lg p-3 shadow">
+                    <div className="font-bold text-sm">{ts.evaluator}</div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {calculateAverage(ts.scores).toFixed(2)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className={`${scoreInfo.bg} border-4 ${scoreInfo.border} rounded-2xl p-8 mb-6 text-center shadow-xl`}>
+          <div className={`text-6xl md:text-8xl font-bold ${scoreInfo.text} mb-2`}>
+            {finalScore.toFixed(2)}
+          </div>
+          <div className={`text-2xl md:text-3xl font-bold ${scoreInfo.text}`}>
+            {scoreInfo.label}
+          </div>
+        </div>
+
+        {Object.entries(criteria).map(([category, items]) => (
+          <div key={category} className="bg-white rounded-2xl shadow-xl p-6 mb-4">
+            <div className="bg-gradient-to-r from-purple-600 to-purple-800 text-white text-2xl font-bold p-4 rounded-lg mb-4">
+              {category}
+            </div>
+            {items.map((criterion) => {
+              const displayScore = viewMode === 'individual'
+                ? (scores[criterion.id] === 0 ? 'N/A' : scores[criterion.id])
+                : calculateTeamAvg(criterion.id);
+              const scoreColor = viewMode === 'individual'
+                ? (scores[criterion.id] === 0 ? '#cbd5e1' : '#3b82f6')
+                : '#7c3aed';
+
+              return (
+                <div key={criterion.id} className="bg-gray-50 rounded-xl p-5 mb-4 border-2 border-gray-200">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <div className="font-bold text-lg text-gray-800 mb-1">{criterion.label}</div>
+                      <div className="text-sm text-gray-600">{criterion.desc}</div>
+                    </div>
+                    <div className="text-5xl font-bold ml-4" style={{ color: scoreColor }}>
+                      {displayScore}
+                    </div>
+                  </div>
+
+                  {viewMode === 'individual' && (
+                    <>
+                      <input
+                        type="range"
+                        min="0"
+                        max="5"
+                        value={scores[criterion.id]}
+                        onChange={(e) => setScores({ ...scores, [criterion.id]: parseInt(e.target.value) })}
+                        className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <div className="flex justify-between text-sm text-gray-600 mt-1 mb-3">
+                        <span>N/A</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-gray-700 mb-1">Notes:</div>
+                        <textarea
+                          value={notes[criterion.id]}
+                          onChange={(e) => setNotes({ ...notes, [criterion.id]: e.target.value })}
+                          placeholder="Add notes, actual values, or context..."
+                          className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none resize-y min-h-[60px]"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {viewMode === 'team' && teamScores.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
+                      {teamScores.map((ts, idx) => {
+                        const score = ts.scores[criterion.id] || 0;
+                        const note = ts.notes?.[criterion.id] || '';
+                        return (
+                          <div key={idx} className="bg-white rounded-lg p-3 border border-gray-300">
+                            <div className="font-bold text-sm">{ts.evaluator}:</div>
+                            <div className="text-xl font-bold text-purple-600">
+                              {score === 0 ? 'N/A' : score}
+                            </div>
+                            {note && <div className="text-xs text-gray-600 mt-1">{note}</div>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default DealMatrixVercel;
