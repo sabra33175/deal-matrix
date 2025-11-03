@@ -1,490 +1,58 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Deal Evaluation Matrix</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
-            min-height: 100vh;
-        }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .card { background: white; border-radius: 15px; padding: 30px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
-        h1 { color: #667eea; font-size: 2.5rem; margin-bottom: 10px; }
-        .subtitle { color: #666; margin-bottom: 30px; }
-        .input-group { margin-bottom: 20px; }
-        label { display: block; font-weight: bold; margin-bottom: 8px; color: #333; }
-        input[type="text"], textarea { 
-            width: 100%; 
-            padding: 12px; 
-            border: 2px solid #ddd; 
-            border-radius: 8px; 
-            font-size: 16px;
-            font-family: inherit;
-        }
-        input[type="text"]:focus, textarea:focus { border-color: #667eea; outline: none; }
-        textarea {
-            resize: vertical;
-            min-height: 60px;
-        }
-        .button-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
-        button {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .btn-primary { background: #10b981; color: white; }
-        .btn-primary:hover { background: #059669; }
-        .btn-secondary { background: #3b82f6; color: white; }
-        .btn-secondary:hover { background: #2563eb; }
-        .btn-secondary.active { background: #1e40af; }
-        .btn-secondary:disabled { background: #cbd5e1; cursor: not-allowed; }
-        .score-card {
-            text-align: center;
-            padding: 40px;
-            border-radius: 15px;
-            border: 4px solid;
-            margin-bottom: 30px;
-        }
-        .score-value { font-size: 5rem; font-weight: bold; margin-bottom: 10px; }
-        .score-label { font-size: 2rem; font-weight: bold; }
-        .category { background: white; border-radius: 12px; padding: 25px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .category-header { 
-            font-size: 1.8rem; 
-            font-weight: bold; 
-            color: white;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        .criterion {
-            background: #f8fafc;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            border: 2px solid #e2e8f0;
-        }
-        .criterion-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        .criterion-title { font-weight: bold; font-size: 1.2rem; color: #1e293b; }
-        .criterion-desc { font-size: 0.9rem; color: #64748b; margin-top: 5px; }
-        .score-display { 
-            font-size: 3rem; 
-            font-weight: bold; 
-            min-width: 100px;
-            text-align: center;
-        }
-        .slider-container { margin: 15px 0; }
-        input[type="range"] {
-            width: 100%;
-            height: 10px;
-            background: #e2e8f0;
-            border-radius: 5px;
-            outline: none;
-            -webkit-appearance: none;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 25px;
-            height: 25px;
-            background: #3b82f6;
-            cursor: pointer;
-            border-radius: 50%;
-        }
-        input[type="range"]::-moz-range-thumb {
-            width: 25px;
-            height: 25px;
-            background: #3b82f6;
-            cursor: pointer;
-            border-radius: 50%;
-            border: none;
-        }
-        .slider-labels {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            color: #64748b;
-            margin-top: 5px;
-            margin-bottom: 10px;
-        }
-        .notes-section {
-            margin-top: 10px;
-        }
-        .notes-label {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #475569;
-            margin-bottom: 5px;
-        }
-        .team-scores {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-            margin-top: 15px;
-        }
-        .team-member {
-            background: white;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            font-size: 0.9rem;
-        }
-        .team-member-name { font-weight: bold; }
-        .team-member-score { color: #3b82f6; font-weight: bold; }
-        .alert {
-            background: #dbeafe;
-            border: 2px solid #3b82f6;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        .alert-title { font-weight: bold; margin-bottom: 10px; color: #1e3a8a; }
-        .alert-list { margin-left: 20px; color: #1e40af; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media (max-width: 768px) {
-            .grid-2 { grid-template-columns: 1fr; }
-            .score-value { font-size: 3rem; }
-            .score-label { font-size: 1.5rem; }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="card">
-            <h1>💼 Deal Evaluation Matrix</h1>
-            <div class="subtitle">Independent Sponsor IC Tool</div>
-            
-            <div class="alert" id="guide">
-                <div class="alert-title">📋 How to Use:</div>
-                <ol class="alert-list">
-                    <li>Everyone on your team opens THIS SAME URL</li>
-                    <li>Everyone uses the EXACT SAME deal name</li>
-                    <li>Each person enters their own name</li>
-                    <li>Score the deal and add notes, then click "Save My Scores"</li>
-                    <li>Click "Team View" to see everyone's scores combined</li>
-                </ol>
-            </div>
+import { sql } from '@vercel/postgres';
 
-            <div class="grid-2">
-                <div class="input-group">
-                    <label>Deal Name (MUST be identical for all team members!):</label>
-                    <input type="text" id="dealName" placeholder="Acme Corp Acquisition">
-                </div>
-                
-                <div class="input-group">
-                    <label>Your Name:</label>
-                    <input type="text" id="evaluatorName" placeholder="John Smith">
-                </div>
-            </div>
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-            <div class="button-group">
-                <button class="btn-primary" onclick="saveScores()">💾 Save My Scores</button>
-                <button class="btn-secondary active" id="btnIndividual" onclick="setViewMode('individual')">👤 My Scores</button>
-                <button class="btn-secondary" id="btnTeam" onclick="setViewMode('team')" disabled>👥 Team View (0)</button>
-            </div>
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
 
-            <div id="teamInfo"></div>
-        </div>
+  try {
+    if (req.method === 'GET') {
+      const { dealName } = req.query;
+      
+      if (!dealName) {
+        return res.status(400).json({ error: 'dealName required' });
+      }
 
-        <div class="score-card" id="scoreCard">
-            <div class="score-value" id="finalScore">0.00</div>
-            <div class="score-label" id="recommendation">NOT SCORED</div>
-        </div>
+      const result = await sql`
+        SELECT id, deal_name, evaluator, scores, notes, created_at, updated_at
+        FROM deal_evaluations
+        WHERE deal_name = ${dealName}
+        ORDER BY updated_at DESC
+      `;
 
-        <div id="categories"></div>
-    </div>
+      return res.status(200).json(result.rows);
+    }
 
-    <script>
-        let viewMode = 'individual';
-        let scores = {};
-        let notes = {};
-        let teamScores = [];
+    if (req.method === 'POST') {
+      const { dealName, evaluatorName, scores, notes } = req.body;
 
-        const criteria = {
-            'Sponsor Quality & Track Record': [
-                {id: 'sponsorDeals', label: 'Prior Deals Completed', desc: '5: 5+ successful deals | 4: 3-4 deals | 3: 1-2 deals | 2: First deal with strong co-sponsor | 1: Solo first-time sponsor'},
-                {id: 'sponsorExits', label: 'Exit Track Record', desc: '5: Multiple 3x+ MOIC exits | 4: 2x+ MOIC exits | 3: 1.5x+ MOIC exits | 2: One successful exit | 1: No exits'},
-                {id: 'sponsorCapital', label: 'Personal Capital Commitment', desc: '5: >20% of equity or >$2M | 4: 15-20% or $1-2M | 3: 10-15% or $500k-1M | 2: 5-10% or $250-500k | 1: <5% or <$250k'},
-                {id: 'sponsorAngle', label: 'Deal Sourcing Angle & Edge', desc: '5: Unique proprietary deal flow (industry insider, geography, niche) | 4: Strong differentiated angle | 3: Adequate sourcing strategy | 2: Generic broker-sourced deals | 1: No clear sourcing advantage'},
-                {id: 'sponsorBackground', label: 'Professional Background & Expertise', desc: '5: Senior role institutional PE (VP+) + ops | 4: Institutional PE analyst/associate + ops | 3: Mid-market PE or 10+ years ops only | 2: Corp dev or limited PE exposure | 1: No PE or ops experience'},
-                {id: 'sponsorCredibility', label: 'Credibility & Market Presence', desc: '5: Known in market, LinkedIn presence, testimonials | 4: Active in industry, findable track record | 3: Clean background check, verifiable resume | 2: Limited digital footprint | 1: Concerning gaps or inconsistencies'},
-                {id: 'sponsorCarry', label: 'Sponsor Carry Structure', desc: '5: Tiered carry (20%+ at higher returns) | 4: Graduated carry structure | 3: Standard 20% carry | 2: Below-market carry | 1: No carry or unusual structure'}
-            ],
-            'Business Model & Competitive Position': [
-                {id: 'businessRevenue', label: 'Revenue Scale', desc: '5: >$50M | 4: $25-50M | 3: $10-25M | 2: $5-10M | 1: <$5M'},
-                {id: 'businessCustomer', label: 'Customer Diversification', desc: '5: Top 10 <15% revenue | 4: Top 10 <25% | 3: Top 10 <40% | 2: Top 10 <60% | 1: Top 10 >60%'},
-                {id: 'businessRecurring', label: 'Revenue Predictability', desc: '5: >80% recurring/contracted | 4: 60-80% recurring | 3: 40-60% recurring | 2: 20-40% recurring | 1: <20% recurring'},
-                {id: 'businessRetention', label: 'Customer Retention Rate', desc: '5: >95% net retention | 4: 90-95% | 3: 85-90% | 2: 80-85% | 1: <80%'},
-                {id: 'managementTenure', label: 'Management Team Tenure & Stability', desc: '5: CEO/CFO 5+ years, staying post-close | 4: 3-5 years, committed to stay | 3: 2-3 years, staying | 2: <2 years or transition planned | 1: Complete turnover needed'},
-                {id: 'competitiveAdvantage', label: 'Sustainable Competitive Advantage', desc: '5: Clear moat (patents, IP, switching costs, network effects) | 4: Strong advantages in place | 3: Moderate differentiation | 2: Limited advantages | 1: No defensible position'},
-                {id: 'productDifferentiation', label: 'Product/Service Differentiation', desc: '5: Highly differentiated, unique value prop | 4: Well-differentiated offering | 3: Some differentiation | 2: Slight differences from competitors | 1: Commoditized offering'}
-            ],
-            'Financial Performance & Metrics': [
-                {id: 'ebitdaMargins', label: 'EBITDA Margins', desc: '5: >30% | 4: 20-30% | 3: 15-20% | 2: 10-15% | 1: <10%'},
-                {id: 'revenueGrowth', label: 'Revenue CAGR (3yr)', desc: '5: >25% | 4: 15-25% | 3: 10-15% | 2: 5-10% | 1: <5% or declining'},
-                {id: 'ebitdaGrowth', label: 'EBITDA CAGR (3yr)', desc: '5: >30% | 4: 20-30% | 3: 15-20% | 2: 10-15% | 1: <10% or declining'},
-                {id: 'fcfConversion', label: 'Free Cash Flow Conversion', desc: '5: >90% of EBITDA | 4: 75-90% | 3: 60-75% | 2: 40-60% | 1: <40%'},
-                {id: 'capexIntensity', label: 'Capex as % of Revenue', desc: '5: <2% | 4: 2-4% | 3: 4-6% | 2: 6-10% | 1: >10%'},
-                {id: 'grossMargins', label: 'Gross Margins', desc: '5: >60% | 4: 50-60% | 3: 40-50% | 2: 30-40% | 1: <30%'},
-                {id: 'customersConcentration', label: 'Top Customer as % Revenue', desc: '5: <5% | 4: 5-10% | 3: 10-15% | 2: 15-25% | 1: >25%'}
-            ],
-            'Deal Economics & Structure': [
-                {id: 'dealMultiple', label: 'EV / LTM EBITDA Multiple', desc: '5: <5x | 4: 5-6x | 3: 6-7x | 2: 7-8x | 1: >8x'},
-                {id: 'dealLeverage', label: 'Total Debt / EBITDA', desc: '5: <2.5x | 4: 2.5-3.5x | 3: 3.5-4.5x | 2: 4.5-5.5x | 1: >5.5x'},
-                {id: 'dealEquityCheck', label: 'Our Equity Check Size', desc: '5: <$5M | 4: $5-8M | 3: $8-12M | 2: $12-15M | 1: >$15M (concentration risk)'},
-                {id: 'dealDebtSeniority', label: 'Our Debt Position & Security', desc: '5: First-dollar senior secured debt | 4: Senior secured with minimal pari passu | 3: Pari passu senior debt | 2: Junior/mezzanine position | 1: Unsecured or subordinated'},
-                {id: 'dealRollover', label: 'Seller Rollover Equity', desc: '5: ≥30% rolling | 4: 20-29% rolling | 3: 10-19% rolling | 2: 5-9% rolling | 1: <5% or none'}
-            ],
-            'Market Dynamics & Industry': [
-                {id: 'marketTam', label: 'Total Addressable Market', desc: '5: >$5B TAM | 4: $2-5B | 3: $1-2B | 2: $500M-1B | 1: <$500M'},
-                {id: 'marketGrowth', label: 'Market Growth Rate', desc: '5: >15% annually | 4: 10-15% | 3: 5-10% | 2: 2-5% | 1: Flat or declining'},
-                {id: 'marketFragmentation', label: 'Market Fragmentation & Consolidation Opportunity', desc: '5: Highly fragmented, clear roll-up opportunity | 4: Fragmented with consolidation thesis | 3: Moderately consolidated | 2: Consolidated market | 1: Few dominant players, limited M&A opportunity'},
-                {id: 'regulatoryRisk', label: 'Regulatory & Compliance Risk', desc: '5: Minimal regulation | 4: Stable regulatory environment | 3: Moderate oversight | 2: Changing regulations | 1: High regulatory risk or uncertainty'},
-                {id: 'tariffExposure', label: 'Tariff & Trade Policy Exposure', desc: '5: Domestic-only, no import/export exposure | 4: Minimal foreign sourcing (<10% COGS) | 3: Moderate exposure, diversified suppliers | 2: Significant China/foreign exposure (>30% COGS) | 1: Heavy reliance on tariff-sensitive imports'},
-                {id: 'aiDisruptionRisk', label: 'AI/Automation Disruption Risk', desc: '5: AI enhances business, low disruption risk | 4: Minimal AI impact on core operations | 3: Moderate risk, adaptation possible | 2: Significant automation threat to model | 1: High risk of AI/automation displacement'}
-            ],
-            'Execution Risk & Value Creation': [
-                {id: 'ddQuality', label: 'Diligence Quality & Coverage', desc: '5: Full QofE, legal, commercial, IT | 4: QofE + legal + one other | 3: QofE + legal | 2: Limited QofE | 1: Minimal diligence'},
-                {id: 'integrationRisk', label: 'Integration Complexity', desc: '5: Stand-alone, minimal change | 4: Minor integration needs | 3: Moderate complexity | 2: Significant integration | 1: High execution risk'},
-                {id: 'valueCreationPlan', label: 'Value Creation Plan Clarity', desc: '5: Detailed 100-day plan, multiple levers | 4: Clear plan, 2-3 levers | 3: General plan | 2: Vague initiatives | 1: No clear plan'}
-            ]
-        };
+      if (!dealName || !evaluatorName || !scores) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
 
-        // Initialize scores and notes
-        Object.values(criteria).flat().forEach(c => {
-            scores[c.id] = 0;
-            notes[c.id] = '';
-        });
+      const result = await sql`
+        INSERT INTO deal_evaluations (deal_name, evaluator, scores, notes, updated_at)
+        VALUES (${dealName}, ${evaluatorName}, ${JSON.stringify(scores)}, ${JSON.stringify(notes || {})}, CURRENT_TIMESTAMP)
+        ON CONFLICT (deal_name, evaluator)
+        DO UPDATE SET 
+          scores = ${JSON.stringify(scores)},
+          notes = ${JSON.stringify(notes || {})},
+          updated_at = CURRENT_TIMESTAMP
+        RETURNING *
+      `;
 
-        function renderUI() {
-            const container = document.getElementById('categories');
-            container.innerHTML = '';
-            
-            Object.entries(criteria).forEach(([category, items]) => {
-                const categoryDiv = document.createElement('div');
-                categoryDiv.className = 'category';
-                categoryDiv.innerHTML = `<div class="category-header">${category}</div>`;
-                
-                items.forEach(criterion => {
-                    const criterionDiv = document.createElement('div');
-                    criterionDiv.className = 'criterion';
-                    
-                    const displayScore = viewMode === 'individual' 
-                        ? (scores[criterion.id] === 0 ? 'N/A' : scores[criterion.id])
-                        : calculateTeamAvg(criterion.id);
-                    
-                    const scoreColor = viewMode === 'individual'
-                        ? (scores[criterion.id] === 0 ? '#cbd5e1' : '#3b82f6')
-                        : '#7c3aed';
-                    
-                    criterionDiv.innerHTML = `
-                        <div class="criterion-header">
-                            <div style="flex: 1;">
-                                <div class="criterion-title">${criterion.label}</div>
-                                <div class="criterion-desc">${criterion.desc}</div>
-                            </div>
-                            <div class="score-display" style="color: ${scoreColor};">${displayScore}</div>
-                        </div>
-                    `;
-                    
-                    if (viewMode === 'individual') {
-                        criterionDiv.innerHTML += `
-                            <div class="slider-container">
-                                <input type="range" min="0" max="5" value="${scores[criterion.id]}" 
-                                    oninput="updateScore('${criterion.id}', this.value)">
-                                <div class="slider-labels">
-                                    <span>N/A</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
-                                </div>
-                            </div>
-                            <div class="notes-section">
-                                <div class="notes-label">Notes:</div>
-                                <textarea 
-                                    placeholder="Add notes, actual values, or context..."
-                                    oninput="updateNote('${criterion.id}', this.value)"
-                                >${notes[criterion.id]}</textarea>
-                            </div>
-                        `;
-                    } else if (teamScores.length > 0) {
-                        let teamHTML = '<div class="team-scores">';
-                        teamScores.forEach(ts => {
-                            const score = ts.scores[criterion.id] || 0;
-                            const note = ts.notes && ts.notes[criterion.id] ? ts.notes[criterion.id] : '';
-                            teamHTML += `
-                                <div class="team-member">
-                                    <div class="team-member-name">${ts.evaluator}:</div>
-                                    <div class="team-member-score">${score === 0 ? 'N/A' : score}</div>
-                                    ${note ? `<div style="font-size: 0.8rem; color: #64748b; margin-top: 5px;">${note}</div>` : ''}
-                                </div>
-                            `;
-                        });
-                        teamHTML += '</div>';
-                        criterionDiv.innerHTML += teamHTML;
-                    }
-                    
-                    categoryDiv.appendChild(criterionDiv);
-                });
-                
-                container.appendChild(categoryDiv);
-            });
-            
-            updateFinalScore();
-        }
+      return res.status(200).json(result.rows[0]);
+    }
 
-        function updateScore(id, value) {
-            scores[id] = parseInt(value);
-            renderUI();
-        }
-
-        function updateNote(id, value) {
-            notes[id] = value;
-        }
-
-        function calculateAverage(scoreObj) {
-            const values = Object.values(scoreObj).filter(v => v > 0);
-            return values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
-        }
-
-        function calculateTeamAvg(criterionId) {
-            if (teamScores.length === 0) return 'N/A';
-            const values = teamScores.map(ts => ts.scores[criterionId] || 0).filter(v => v > 0);
-            if (values.length === 0) return 'N/A';
-            return (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1);
-        }
-
-        function updateFinalScore() {
-            let finalScore;
-            if (viewMode === 'individual') {
-                finalScore = calculateAverage(scores);
-            } else {
-                if (teamScores.length === 0) {
-                    finalScore = 0;
-                } else {
-                    const teamAvgs = teamScores.map(ts => calculateAverage(ts.scores));
-                    finalScore = teamAvgs.reduce((a, b) => a + b, 0) / teamAvgs.length;
-                }
-            }
-            
-            document.getElementById('finalScore').textContent = finalScore.toFixed(2);
-            
-            const card = document.getElementById('scoreCard');
-            const recEl = document.getElementById('recommendation');
-            
-            if (finalScore >= 4.0) {
-                card.style.background = 'linear-gradient(to bottom right, #d1fae5, #a7f3d0)';
-                card.style.borderColor = '#10b981';
-                recEl.textContent = '🚀 STRONG GO';
-                recEl.style.color = '#065f46';
-            } else if (finalScore >= 3.5) {
-                card.style.background = 'linear-gradient(to bottom right, #d1fae5, #a7f3d0)';
-                card.style.borderColor = '#10b981';
-                recEl.textContent = '✅ GO';
-                recEl.style.color = '#065f46';
-            } else if (finalScore >= 3.0) {
-                card.style.background = 'linear-gradient(to bottom right, #fef3c7, #fde68a)';
-                card.style.borderColor = '#f59e0b';
-                recEl.textContent = '🤔 MAYBE';
-                recEl.style.color = '#92400e';
-            } else if (finalScore >= 2.5) {
-                card.style.background = 'linear-gradient(to bottom right, #fed7aa, #fdba74)';
-                card.style.borderColor = '#ea580c';
-                recEl.textContent = '⚠️ PASS';
-                recEl.style.color = '#9a3412';
-            } else {
-                card.style.background = 'linear-gradient(to bottom right, #fee2e2, #fecaca)';
-                card.style.borderColor = '#ef4444';
-                recEl.textContent = '❌ NO GO';
-                recEl.style.color = '#991b1b';
-            }
-        }
-
-        function saveScores() {
-            const dealName = document.getElementById('dealName').value.trim();
-            const evaluatorName = document.getElementById('evaluatorName').value.trim();
-            
-            if (!dealName || !evaluatorName) {
-                alert('Please enter both deal name and your name!');
-                return;
-            }
-            
-            try {
-                let existing = [];
-                const stored = localStorage.getItem('deal:' + dealName);
-                if (stored) existing = JSON.parse(stored);
-                
-                existing = existing.filter(s => s.evaluator !== evaluatorName);
-                existing.push({
-                    evaluator: evaluatorName,
-                    scores: {...scores},
-                    notes: {...notes},
-                    timestamp: new Date().toISOString()
-                });
-                
-                localStorage.setItem('deal:' + dealName, JSON.stringify(existing));
-                loadTeamScores();
-                alert('✅ Saved successfully!');
-            } catch (e) {
-                alert('❌ Save failed: ' + e.message);
-            }
-        }
-
-        function loadTeamScores() {
-            const dealName = document.getElementById('dealName').value.trim();
-            if (!dealName) return;
-            
-            try {
-                const stored = localStorage.getItem('deal:' + dealName);
-                teamScores = stored ? JSON.parse(stored) : [];
-                
-                document.getElementById('btnTeam').disabled = teamScores.length === 0;
-                document.getElementById('btnTeam').textContent = `👥 Team View (${teamScores.length})`;
-                
-                if (teamScores.length > 0) {
-                    let infoHTML = '<div style="background: linear-gradient(to bottom right, #dbeafe, #ede9fe); padding: 15px; border-radius: 10px; margin-top: 15px;">';
-                    infoHTML += '<div style="font-weight: bold; margin-bottom: 10px;">Team Members:</div>';
-                    infoHTML += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">';
-                    teamScores.forEach(ts => {
-                        const avg = calculateAverage(ts.scores);
-                        infoHTML += `<div style="background: white; padding: 10px; border-radius: 8px;">
-                            <div style="font-weight: bold;">${ts.evaluator}</div>
-                            <div style="color: #3b82f6; font-weight: bold;">${avg.toFixed(2)}</div>
-                        </div>`;
-                    });
-                    infoHTML += '</div></div>';
-                    document.getElementById('teamInfo').innerHTML = infoHTML;
-                } else {
-                    document.getElementById('teamInfo').innerHTML = '';
-                }
-                
-                if (viewMode === 'team') renderUI();
-            } catch (e) {
-                console.error('Load failed:', e);
-            }
-        }
-
-        function setViewMode(mode) {
-            viewMode = mode;
-            document.getElementById('btnIndividual').classList.toggle('active', mode === 'individual');
-            document.getElementById('btnTeam').classList.toggle('active', mode === 'team');
-            renderUI();
-        }
-
-        document.getElementById('dealName').addEventListener('blur', loadTeamScores);
-        
-        renderUI();
-    </script>
-</body>
-</html>
+    return res.status(405).json({ error: 'Method not allowed' });
+  } catch (error) {
+    console.error('Database error:', error);
+    return res.status(500).json({ error: 'Database error', details: error.message });
+  }
+}
