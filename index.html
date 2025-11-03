@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deal Evaluation Matrix</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .card { background: white; border-radius: 15px; padding: 30px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        h1 { color: #667eea; font-size: 2.5rem; margin-bottom: 10px; }
+        .subtitle { color: #666; margin-bottom: 30px; }
+        .input-group { margin-bottom: 20px; }
+        label { display: block; font-weight: bold; margin-bottom: 8px; color: #333; }
+        input[type="text"] { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid #ddd; 
+            border-radius: 8px; 
+            font-size: 16px;
+        }
+        input[type="text"]:focus { border-color: #667eea; outline: none; }
+        .button-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary { background: #10b981; color: white; }
+        .btn-primary:hover { background: #059669; }
+        .btn-secondary { background: #3b82f6; color: white; }
+        .btn-secondary:hover { background: #2563eb; }
+        .btn-secondary.active { background: #1e40af; }
+        .btn-secondary:disabled { background: #cbd5e1; cursor: not-allowed; }
+        .score-card {
+            text-align: center;
+            padding: 40px;
+            border-radius: 15px;
+            border: 4px solid;
+            margin-bottom: 30px;
+        }
+        .score-value { font-size: 5rem; font-weight: bold; margin-bottom: 10px; }
+        .score-label { font-size: 2rem; font-weight: bold; }
+        .category { background: white; border-radius: 12px; padding: 25px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .category-header { 
+            font-size: 1.8rem; 
+            font-weight: bold; 
+            color: white;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .criterion {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border: 2px solid #e2e8f0;
+        }
+        .criterion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .criterion-title { font-weight: bold; font-size: 1.2rem; color: #1e293b; }
+        .criterion-desc { font-size: 0.9rem; color: #64748b; margin-top: 5px; }
+        .score-display { 
+            font-size: 3rem; 
+            font-weight: bold; 
+            min-width: 100px;
+            text-align: center;
+        }
+        .slider-container { margin: 15px 0; }
+        input[type="range"] {
+            width: 100%;
+            height: 10px;
+            background: #e2e8f0;
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            background: #3b82f6;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            background: #3b82f6;
+            cursor: pointer;
+            border-radius: 50%;
+            border: none;
+        }
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 5px;
+        }
+        .team-scores {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .team-member {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            font-size: 0.9rem;
+        }
+        .team-member-name { font-weight: bold; }
+        .team-member-score { color: #3b82f6; font-weight: bold; }
+        .alert {
+            background: #dbeafe;
+            border: 2px solid #3b82f6;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .alert-title { font-weight: bold; margin-bottom: 10px; color: #1e3a8a; }
+        .alert-list { margin-left: 20px; color: #1e40af; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .score-value { font-size: 3rem; }
+            .score-label { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>💼 Deal Evaluation Matrix</h1>
+            <div class="subtitle">Independent Sponsor IC Tool</div>
+            
+            <div class="alert" id="guide">
+                <div class="alert-title">📋 How to Use:</div>
+                <ol class="alert-list">
+                    <li>Everyone on your team opens THIS SAME FILE</li>
+                    <li>Everyone uses the EXACT SAME deal name</li>
+                    <li>Each person enters their own name</li>
+                    <li>Score the deal and click "Save My Scores"</li>
+                    <li>Click "Team View" to see everyone's scores combined</li>
+                </ol>
+            </div>
+
+            <div class="grid-2">
+                <div class="input-group">
+                    <label>Deal Name (MUST be identical for all team members!):</label>
+                    <input type="text" id="dealName" placeholder="Acme Corp Acquisition">
+                </div>
+                
+                <div class="input-group">
+                    <label>Your Name:</label>
+                    <input type="text" id="evaluatorName" placeholder="John Smith">
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-primary" onclick="saveScores()">💾 Save My Scores</button>
+                <button class="btn-secondary active" id="btnIndividual" onclick="setViewMode('individual')">👤 My Scores</button>
+                <button class="btn-secondary" id="btnTeam" onclick="setViewMode('team')" disabled>👥 Team View (0)</button>
+            </div>
+
+            <div id="teamInfo"></div>
+        </div>
+
+        <div class="score-card" id="scoreCard">
+            <div class="score-value" id="finalScore">0.00</div>
+            <div class="score-label" id="recommendation">NOT SCORED</div>
+        </div>
+
+        <div id="categories"></div>
+    </div>
+
+    <script>
+        let viewMode = 'individual';
+        let scores = {};
+        let teamScores = [];
+
+        const criteria = {
+            'Sponsor Quality': [
+                {id: 'sponsorDeals', label: 'Prior Deals Completed', desc: '5: 5+ deals | 4: 3-4 deals | 3: 1-2 deals | 2: First w/ co-sponsor | 1: Solo first'},
+                {id: 'sponsorExits', label: 'Exit Track Record', desc: '5: Multiple 3x+ exits | 4: 2x+ exits | 3: 1.5x+ exits | 2: One exit | 1: No exits'},
+                {id: 'sponsorCapital', label: 'Personal Capital', desc: '5: >20% or >$2M | 4: 15-20% or $1-2M | 3: 10-15% or $500k-1M | 2: 5-10% | 1: <5%'}
+            ],
+            'Business Model': [
+                {id: 'businessRevenue', label: 'Revenue Scale', desc: '5: >$50M | 4: $25-50M | 3: $10-25M | 2: $5-10M | 1: <$5M'},
+                {id: 'businessCustomer', label: 'Customer Diversification', desc: '5: Top 10 <15% | 4: <25% | 3: <40% | 2: <60% | 1: >60%'},
+                {id: 'businessRecurring', label: 'Revenue Predictability', desc: '5: >80% recurring | 4: 60-80% | 3: 40-60% | 2: 20-40% | 1: <20%'}
+            ],
+            'Financial Performance': [
+                {id: 'ebitdaMargins', label: 'EBITDA Margins', desc: '5: >30% | 4: 20-30% | 3: 15-20% | 2: 10-15% | 1: <10%'},
+                {id: 'revenueGrowth', label: 'Revenue Growth (3yr)', desc: '5: >25% | 4: 15-25% | 3: 10-15% | 2: 5-10% | 1: <5%'},
+                {id: 'fcfConversion', label: 'FCF Conversion', desc: '5: >90% | 4: 75-90% | 3: 60-75% | 2: 40-60% | 1: <40%'}
+            ],
+            'Deal Structure': [
+                {id: 'dealMultiple', label: 'EV/EBITDA Multiple', desc: '5: <5x | 4: 5-6x | 3: 6-7x | 2: 7-8x | 1: >8x'},
+                {id: 'dealLeverage', label: 'Debt/EBITDA', desc: '5: <2.5x | 4: 2.5-3.5x | 3: 3.5-4.5x | 2: 4.5-5.5x | 1: >5.5x'},
+                {id: 'dealRollover', label: 'Seller Rollover', desc: '5: ≥30% | 4: 20-29% | 3: 10-19% | 2: 5-9% | 1: <5%'}
+            ],
+            'Market & Execution': [
+                {id: 'marketTam', label: 'TAM Size', desc: '5: >$5B | 4: $2-5B | 3: $1-2B | 2: $500M-1B | 1: <$500M'},
+                {id: 'marketGrowth', label: 'Market Growth', desc: '5: >15% | 4: 10-15% | 3: 5-10% | 2: 2-5% | 1: Flat/Declining'},
+                {id: 'ddQuality', label: 'Diligence Quality', desc: '5: Full QofE+legal+commercial+IT | 4: QofE+legal+1 | 3: QofE+legal | 2: Limited | 1: Minimal'}
+            ]
+        };
+
+        // Initialize scores
+        Object.values(criteria).flat().forEach(c => scores[c.id] = 0);
+
+        function renderUI() {
+            const container = document.getElementById('categories');
+            container.innerHTML = '';
+            
+            Object.entries(criteria).forEach(([category, items]) => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'category';
+                categoryDiv.innerHTML = `<div class="category-header">${category}</div>`;
+                
+                items.forEach(criterion => {
+                    const criterionDiv = document.createElement('div');
+                    criterionDiv.className = 'criterion';
+                    
+                    const displayScore = viewMode === 'individual' 
+                        ? (scores[criterion.id] === 0 ? 'N/A' : scores[criterion.id])
+                        : calculateTeamAvg(criterion.id);
+                    
+                    const scoreColor = viewMode === 'individual'
+                        ? (scores[criterion.id] === 0 ? '#cbd5e1' : '#3b82f6')
+                        : '#7c3aed';
+                    
+                    criterionDiv.innerHTML = `
+                        <div class="criterion-header">
+                            <div>
+                                <div class="criterion-title">${criterion.label}</div>
+                                <div class="criterion-desc">${criterion.desc}</div>
+                            </div>
+                            <div class="score-display" style="color: ${scoreColor};">${displayScore}</div>
+                        </div>
+                    `;
+                    
+                    if (viewMode === 'individual') {
+                        criterionDiv.innerHTML += `
+                            <div class="slider-container">
+                                <input type="range" min="0" max="5" value="${scores[criterion.id]}" 
+                                    oninput="updateScore('${criterion.id}', this.value)">
+                                <div class="slider-labels">
+                                    <span>N/A</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                                </div>
+                            </div>
+                        `;
+                    } else if (teamScores.length > 0) {
+                        let teamHTML = '<div class="team-scores">';
+                        teamScores.forEach(ts => {
+                            const score = ts.scores[criterion.id] || 0;
+                            teamHTML += `
+                                <div class="team-member">
+                                    <div class="team-member-name">${ts.evaluator}:</div>
+                                    <div class="team-member-score">${score === 0 ? 'N/A' : score}</div>
+                                </div>
+                            `;
+                        });
+                        teamHTML += '</div>';
+                        criterionDiv.innerHTML += teamHTML;
+                    }
+                    
+                    categoryDiv.appendChild(criterionDiv);
+                });
+                
+                container.appendChild(categoryDiv);
+            });
+            
+            updateFinalScore();
+        }
+
+        function updateScore(id, value) {
+            scores[id] = parseInt(value);
+            renderUI();
+        }
+
+        function calculateAverage(scoreObj) {
+            const values = Object.values(scoreObj).filter(v => v > 0);
+            return values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+        }
+
+        function calculateTeamAvg(criterionId) {
+            if (teamScores.length === 0) return 'N/A';
+            const values = teamScores.map(ts => ts.scores[criterionId] || 0).filter(v => v > 0);
+            if (values.length === 0) return 'N/A';
+            return (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1);
+        }
+
+        function updateFinalScore() {
+            let finalScore;
+            if (viewMode === 'individual') {
+                finalScore = calculateAverage(scores);
+            } else {
+                if (teamScores.length === 0) {
+                    finalScore = 0;
+                } else {
+                    const teamAvgs = teamScores.map(ts => calculateAverage(ts.scores));
+                    finalScore = teamAvgs.reduce((a, b) => a + b, 0) / teamAvgs.length;
+                }
+            }
+            
+            document.getElementById('finalScore').textContent = finalScore.toFixed(2);
+            
+            const card = document.getElementById('scoreCard');
+            const recEl = document.getElementById('recommendation');
+            
+            if (finalScore >= 4.0) {
+                card.style.background = 'linear-gradient(to bottom right, #d1fae5, #a7f3d0)';
+                card.style.borderColor = '#10b981';
+                recEl.textContent = '🚀 STRONG GO';
+                recEl.style.color = '#065f46';
+            } else if (finalScore >= 3.5) {
+                card.style.background = 'linear-gradient(to bottom right, #d1fae5, #a7f3d0)';
+                card.style.borderColor = '#10b981';
+                recEl.textContent = '✅ GO';
+                recEl.style.color = '#065f46';
+            } else if (finalScore >= 3.0) {
+                card.style.background = 'linear-gradient(to bottom right, #fef3c7, #fde68a)';
+                card.style.borderColor = '#f59e0b';
+                recEl.textContent = '🤔 MAYBE';
+                recEl.style.color = '#92400e';
+            } else if (finalScore >= 2.5) {
+                card.style.background = 'linear-gradient(to bottom right, #fed7aa, #fdba74)';
+                card.style.borderColor = '#ea580c';
+                recEl.textContent = '⚠️ PASS';
+                recEl.style.color = '#9a3412';
+            } else {
+                card.style.background = 'linear-gradient(to bottom right, #fee2e2, #fecaca)';
+                card.style.borderColor = '#ef4444';
+                recEl.textContent = '❌ NO GO';
+                recEl.style.color = '#991b1b';
+            }
+        }
+
+        function saveScores() {
+            const dealName = document.getElementById('dealName').value.trim();
+            const evaluatorName = document.getElementById('evaluatorName').value.trim();
+            
+            if (!dealName || !evaluatorName) {
+                alert('Please enter both deal name and your name!');
+                return;
+            }
+            
+            try {
+                let existing = [];
+                const stored = localStorage.getItem('deal:' + dealName);
+                if (stored) existing = JSON.parse(stored);
+                
+                existing = existing.filter(s => s.evaluator !== evaluatorName);
+                existing.push({
+                    evaluator: evaluatorName,
+                    scores: {...scores},
+                    timestamp: new Date().toISOString()
+                });
+                
+                localStorage.setItem('deal:' + dealName, JSON.stringify(existing));
+                loadTeamScores();
+                alert('✅ Saved successfully!');
+            } catch (e) {
+                alert('❌ Save failed: ' + e.message);
+            }
+        }
+
+        function loadTeamScores() {
+            const dealName = document.getElementById('dealName').value.trim();
+            if (!dealName) return;
+            
+            try {
+                const stored = localStorage.getItem('deal:' + dealName);
+                teamScores = stored ? JSON.parse(stored) : [];
+                
+                document.getElementById('btnTeam').disabled = teamScores.length === 0;
+                document.getElementById('btnTeam').textContent = `👥 Team View (${teamScores.length})`;
+                
+                if (teamScores.length > 0) {
+                    let infoHTML = '<div style="background: linear-gradient(to bottom right, #dbeafe, #ede9fe); padding: 15px; border-radius: 10px; margin-top: 15px;">';
+                    infoHTML += '<div style="font-weight: bold; margin-bottom: 10px;">Team Members:</div>';
+                    infoHTML += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">';
+                    teamScores.forEach(ts => {
+                        const avg = calculateAverage(ts.scores);
+                        infoHTML += `<div style="background: white; padding: 10px; border-radius: 8px;">
+                            <div style="font-weight: bold;">${ts.evaluator}</div>
+                            <div style="color: #3b82f6; font-weight: bold;">${avg.toFixed(2)}</div>
+                        </div>`;
+                    });
+                    infoHTML += '</div></div>';
+                    document.getElementById('teamInfo').innerHTML = infoHTML;
+                } else {
+                    document.getElementById('teamInfo').innerHTML = '';
+                }
+                
+                if (viewMode === 'team') renderUI();
+            } catch (e) {
+                console.error('Load failed:', e);
+            }
+        }
+
+        function setViewMode(mode) {
+            viewMode = mode;
+            document.getElementById('btnIndividual').classList.toggle('active', mode === 'individual');
+            document.getElementById('btnTeam').classList.toggle('active', mode === 'team');
+            renderUI();
+        }
+
+        document.getElementById('dealName').addEventListener('blur', loadTeamScores);
+        
+        renderUI();
+    </script>
+</body>
+</html>
